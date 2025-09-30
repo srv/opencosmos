@@ -8,30 +8,35 @@ import yaml
 from pyproj import Transformer
 from cola2_lib.utils.ned import NED
 
+Image.MAX_IMAGE_PIXELS = None
+
 """CALL
 
-python georef_mosaic.py \
-    mosaic.png \                               # Input PNG mosaic image
-    mosaic_georef.tif \                        # Output GeoTIFF filename
-    --yaml1 path/to/first.yaml \               # First image YAML (HM)
-    --yaml2 path/to/second.yaml \              # Second image YAML (HM)
-    --pixel1 100 200 \                         # Pixel coordinates (row,col) of first reference image in PNG
-    --pixel2 500 800 \                         # Pixel coordinates (row,col) of second reference image in PNG
-    --ned_origin_lat 39.5775 \                 # Latitude of the ROS NED origin (decimal degrees)
-    --ned_origin_lon 2.3515 \                  # Longitude of the ROS NED origin (decimal degrees)
+python png2geotiff.py 
+    --mosaic_path path/to/mosaic.png          # Input PNG mosaic image
+    --out_path path/to/out.tif                # Output GeoTIFF filename
+    --yaml1 path/to/first.yaml                # First image YAML (HM)
+    --yaml2 path/to/second.yaml               # Second image YAML (HM)
+    --pixel1 100 200                          # Pixel coordinates (row,col) of first reference image in PNG
+    --pixel2 500 800                          # Pixel coordinates (row,col) of second reference image in PNG
+    --ned_origin_lat 39.5775                  # Latitude of the ROS NED origin (decimal degrees)
+    --ned_origin_lon 2.3515                   # Longitude of the ROS NED origin (decimal degrees)
     --crs EPSG:25831                           # CRS for output GeoTIFF (UTM Zone 31N)
+
+python3 png2geotiff.py --mosaic_path ../data/mosaics/stelm/3/mosaic_x2.png --out_path ../data/mosaics/stelm/3/mosaic_x2.tif --yaml1 ../data/mosaics/stelm/3/12.yaml --yaml2 ../data/mosaics/stelm/3/14.yaml --pixel1 4333 2901 --pixel2 3157 3375 --ned_origin_lat 39.578535 --ned_origin_lon 2.3502617 --crs EPSG:25831
+
 
 """
 
 
 
-def georeference_png_to_geotiff(png_path, geotiff_path, pixel1, map1, pixel2, map2, crs="EPSG:25831"):
+def georeference_png_to_geotiff(mosaic_path, out_path, pixel1, map1, pixel2, map2, crs="EPSG:25831"):
     row1, col1 = pixel1
     y1, x1 = map1
     row2, col2 = pixel2
     y2, x2 = map2
 
-    img = Image.open(png_path)
+    img = Image.open(mosaic_path)
     arr = np.array(img)
 
     pixel_width = (x2 - x1) / (col2 - col1)
@@ -49,7 +54,7 @@ def georeference_png_to_geotiff(png_path, geotiff_path, pixel1, map1, pixel2, ma
         count = arr.shape[0]
 
     with rasterio.open(
-        geotiff_path,
+        out_path,
         "w",
         driver="GTiff",
         height=arr.shape[-2],
@@ -64,7 +69,7 @@ def georeference_png_to_geotiff(png_path, geotiff_path, pixel1, map1, pixel2, ma
         else:
             dst.write(arr)
 
-    print(f"GeoTIFF written to {geotiff_path}")
+    print(f"GeoTIFF written to {out_path}")
 
 def get_world_from_hm_yaml_utm(yaml_path, ned_origin_lat, ned_origin_lon):
     """
@@ -89,8 +94,8 @@ def get_world_from_hm_yaml_utm(yaml_path, ned_origin_lat, ned_origin_lon):
 
 def main():
     parser = argparse.ArgumentParser(description="Georeference a PNG using two HM YAMLs")
-    parser.add_argument("png_path")
-    parser.add_argument("geotiff_path")
+    parser.add_argument("--mosaic_path")
+    parser.add_argument("--out_path")
     parser.add_argument("--yaml1", required=True)
     parser.add_argument("--yaml2", required=True)
     parser.add_argument("--pixel1", nargs=2, type=int, required=True)
@@ -107,8 +112,8 @@ def main():
     pixel2 = tuple(args.pixel2)
 
     georeference_png_to_geotiff(
-        args.png_path,
-        args.geotiff_path,
+        args.mosaic_path,
+        args.out_path,
         pixel1, map1,
         pixel2, map2,
         crs=args.crs
