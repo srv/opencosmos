@@ -2,13 +2,15 @@ import argparse
 from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
+Image.MAX_IMAGE_PIXELS = None
+
 
 clicked_points = []
 
 def get_center(p1, p2):
-    center_x = (p1[0] + p2[0]) / 2
-    center_y = (p1[1] + p2[1]) / 2
-    return center_x, center_y
+    row = (p1[0] + p2[0]) / 2
+    col = (p1[1] + p2[1]) / 2
+    return row, col
 
 def make_on_click(ax, fig, img_np):
     def on_click(event):
@@ -17,22 +19,23 @@ def make_on_click(ax, fig, img_np):
             return  # Skip click if zoom/pan tool active
 
         if event.inaxes:
-            x, y = int(event.xdata), int(event.ydata)
-            clicked_points.append((x, y))
-            print(f"Clicked: ({x}, {y})")
+            col, row = int(event.xdata), int(event.ydata)  # convert x,y → col,row
+            clicked_points.append((row, col))
+            print(f"Clicked: (row={row}, col={col})")
 
-            ax.plot(x, y, 'ro')
+            ax.plot(col, row, 'ro')
             fig.canvas.draw()
 
             if len(clicked_points) == 2:
                 p1, p2 = clicked_points
                 center = get_center(p1, p2)
-                print(f"Center of square = ({center[0]:.2f}, {center[1]:.2f})")
+                print(f"Center of square = (row={center[0]:.2f}, col={center[1]:.2f})")
 
                 # Draw the square's diagonal and center
-                ax.plot([p1[0], p2[0]], [p1[1], p2[1]], 'g-')
-                ax.plot(center[0], center[1], 'yx', markersize=10)
-                ax.text(center[0], center[1], f"({center[0]:.1f}, {center[1]:.1f})",
+                ax.plot([p1[1], p2[1]], [p1[0], p2[0]], 'g-')  # row = y, col = x
+                ax.plot(center[1], center[0], 'yx', markersize=10)
+                ax.text(center[1], center[0],
+                        f"({center[0]:.1f}, {center[1]:.1f})",  # row,col in label
                         color='yellow', fontsize=10, ha='left',
                         bbox=dict(facecolor='black', alpha=0.5))
                 fig.canvas.draw()
@@ -46,6 +49,7 @@ def make_on_click(ax, fig, img_np):
                 ax.set_title("Click two opposite vertices of a square")
                 ax.set_xlim(xlim)
                 ax.set_ylim(ylim)
+                ax.grid(True, color="white", alpha=0.5)  # show grid
                 fig.canvas.draw()
 
                 clicked_points.clear()
@@ -63,6 +67,7 @@ def main():
     fig, ax = plt.subplots()
     ax.imshow(img_np, origin='upper')
     ax.set_title("Click two opposite vertices of a square")
+    ax.grid(True, color="white", alpha=0.5)  # enable grid
     fig.canvas.mpl_connect('button_press_event', make_on_click(ax, fig, img_np))
 
     plt.show()
