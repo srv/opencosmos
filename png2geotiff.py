@@ -41,6 +41,10 @@ def georeference_png_to_geotiff(mosaic_path, out_path, pixel1, map1, pixel2, map
 
     pixel_width = (x2 - x1) / (col2 - col1)
     pixel_height = (y2 - y1) / (row2 - row1)
+    
+    # Print calculated pixel size in meters
+    print(f"Calculated pixel size: width = {pixel_width:.3f} m, height = {pixel_height:.3f} m")
+
 
     x_origin = x1 - (col1 + 0.5) * pixel_width
     y_origin = y1 - (row1 + 0.5) * pixel_height
